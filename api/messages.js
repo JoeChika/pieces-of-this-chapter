@@ -5,22 +5,16 @@ function db() {
   return neon(process.env.DATABASE_URL);
 }
 
-function json(body, status = 200) {
-  return {
-    statusCode: status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type,X-Admin-Secret'
-    },
-    body: JSON.stringify(body)
-  };
+function send(res, body, status = 200) {
+  res.status(status).setHeader('Cache-Control', 'no-store');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Admin-Secret');
+  return res.json(body);
 }
 
-module.exports = async function handler(req) {
-  if (req.method === 'OPTIONS') return json({}, 204);
+module.exports = async function handler(req, res) {
+  if (req.method === 'OPTIONS') return send(res, {}, 204);
 
   try {
     const sql = db();
@@ -34,14 +28,14 @@ module.exports = async function handler(req) {
         ORDER BY created_at DESC
         LIMIT 200
       `;
-      return json(rows);
+      return send(res, rows);
     }
 
     if (req.method === 'POST') {
       const { name, relation, message, mood = '💌' } = req.body || {};
-      if (!name || !relation || !message) return json({ error: 'Name, relationship and message are required.' }, 400);
+      if (!name || !relation || !message) return send(res, { error: 'Name, relationship and message are required.' }, 400);
       if (String(name).length > 60 || String(relation).length > 80 || String(message).length > 500) {
-        return json({ error: 'One or more fields are too long.' }, 400);
+        return send(res, { error: 'One or more fields are too long.' }, 400);
       }
 
       const rows = await sql`
@@ -50,22 +44,22 @@ module.exports = async function handler(req) {
         RETURNING id, name, relation, message, mood,
                   TO_CHAR(created_at AT TIME ZONE 'UTC', 'DD Mon YYYY') AS date
       `;
-      return json(rows[0], 201);
+      return send(res, rows[0], 201);
     }
 
     if (req.method === 'DELETE') {
       if (!process.env.ADMIN_SECRET || req.headers['x-admin-secret'] !== process.env.ADMIN_SECRET) {
-        return json({ error: 'Unauthorized' }, 401);
+        return send(res, { error: 'Unauthorized' }, 401);
       }
       const id = Number(req.query?.id);
-      if (!Number.isInteger(id)) return json({ error: 'A valid message id is required.' }, 400);
+      if (!Number.isInteger(id)) return send(res, { error: 'A valid message id is required.' }, 400);
       await sql`DELETE FROM guestbook_messages WHERE id = ${id}`;
-      return json({ ok: true });
+      return send(res, { ok: true });
     }
 
-    return json({ error: 'Method not allowed' }, 405);
+    return send(res, { error: 'Method not allowed' }, 405);
   } catch (error) {
-    console.error(error);
-    return json({ error: 'Guestbook service is not configured yet.' }, 503);
+    console.error('Guestbook API error:', error);
+    return send(res, { error: 'Guestbook service is unavailable. Please try again.' }, 503);
   }
 };

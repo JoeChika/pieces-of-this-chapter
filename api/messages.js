@@ -18,8 +18,12 @@ module.exports = async function handler(req, res) {
 
   try {
     const sql = db();
+    const adminSecret = req.headers['x-admin-secret'];
 
     if (req.method === 'GET') {
+      if (adminSecret && (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET)) {
+        return send(res, { error: 'Unauthorized' }, 401);
+      }
       const rows = await sql`
         SELECT id, name, relation, message, mood,
                TO_CHAR(created_at AT TIME ZONE 'UTC', 'DD Mon YYYY') AS date
@@ -32,7 +36,8 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { name, relation, message, mood = '💌' } = req.body || {};
+      const { name, relation, message, mood = '💌', website = '' } = req.body || {};
+      if (website) return send(res, { error: 'Thanks — your piece could not be submitted.' }, 400);
       if (!name || !relation || !message) return send(res, { error: 'Name, relationship and message are required.' }, 400);
       if (String(name).length > 60 || String(relation).length > 80 || String(message).length > 500) {
         return send(res, { error: 'One or more fields are too long.' }, 400);

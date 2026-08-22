@@ -1,3 +1,4 @@
+// Production slideshow fix: guard optional QR controls so the slideshow can initialize.
 const STORAGE_KEY='pieces-of-this-chapter-messages';
 const WELCOME_CONFETTI_KEY='paragon-welcome-confetti';
 const seedMessages=[];

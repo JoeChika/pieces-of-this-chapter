@@ -8,5 +8,9 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/images/paragon-pink.svg", "destination": "/images/paragon-pink.jpg" },
+    { "source": "/images/portrait-current.svg", "destination": "/images/portrait-current.jpg" }
   ]
 }

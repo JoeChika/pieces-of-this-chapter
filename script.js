@@ -7,6 +7,7 @@ let lastSubmissionAt=0;
 function localMessages(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));return Array.isArray(saved)?saved:seedMessages}catch{return seedMessages}}
 function saveLocal(messages){localStorage.setItem(STORAGE_KEY,JSON.stringify(messages))}
 function escapeHTML(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]))}
+async function loadRealPhotos(){try{const [pink,portrait]=await Promise.all([fetch('/images/paragon-pink.b64',{cache:'no-store'}).then(r=>r.text()),fetch('/images/portrait-current.b64',{cache:'no-store'}).then(r=>r.text())]);const pinkSrc=`data:image/jpeg;base64,${pink.trim()}`,portraitSrc=`data:image/jpeg;base64,${portrait.trim()}`;document.querySelectorAll('img[src="/images/paragon-pink.svg"]').forEach(img=>img.src=pinkSrc);document.querySelectorAll('img[src="/images/portrait-current.svg"]').forEach(img=>img.src=portraitSrc)}catch(error){console.warn('Photo assets could not be loaded',error)}}
 function render(messages){const wall=$('#memoryWall'),empty=$('#emptyState');$('#messageCount').textContent=messages.length;if(!messages.length){wall.innerHTML='';empty.style.display='block';return}empty.style.display='none';wall.innerHTML=messages.map(m=>`<article class="memory-card"><div class="memory-top"><div><div class="memory-name">${escapeHTML(m.name)}</div><div class="memory-relation">${escapeHTML(m.relation)}</div></div><div class="memory-mood">${escapeHTML(m.mood||'💌')}</div></div><div class="memory-message">“${escapeHTML(m.message)}”</div><div class="memory-date">${escapeHTML(m.date||'Just now')}</div></article>`).join('')}
 function setStatus(text,type=''){const el=$('#formStatus');el.textContent=text;el.className=`form-status ${type}`}
 async function loadMessages(){try{const response=await fetch('/api/messages',{cache:'no-store'});if(!response.ok)throw new Error('API unavailable');sharedMessages=await response.json();render(sharedMessages)}catch{sharedMessages=null;render(localMessages())}}
@@ -19,4 +20,5 @@ $('#guestForm').addEventListener('submit',async e=>{e.preventDefault();const nam
 $('#closeQr').addEventListener('click',closeQR);document.querySelector('[data-close-qr]').addEventListener('click',closeQR);document.addEventListener('keydown',e=>{if(e.key==='Escape')closeQR()});
 $('#copyLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href.split('#')[0]);$('#copyStatus').textContent='Link copied — share it with your people ✦'}catch{$('#copyStatus').textContent='Copy failed. You can copy the address from your browser.'}});
 if(!sessionStorage.getItem(WELCOME_CONFETTI_KEY))welcomeConfetti();
+loadRealPhotos();
 loadMessages();

@@ -19,7 +19,7 @@ window.addEventListener('load', () => {
 
   const hero = document.querySelector('.hero-card .polaroid img');
   if (hero) {
-    hero.src = '/api/hero?v=9';
+    hero.src = '/api/hero?v=10';
     hero.removeAttribute('srcset');
     hero.onerror = () => { console.warn('Hero endpoint failed to load.'); hero.onerror = null; };
   }
@@ -29,18 +29,17 @@ window.addEventListener('load', () => {
     if (!grid) return;
     grid.classList.add('photo-slideshow');
     const photos = [
-      {src:'/images/slide-05.b64', alt:'Victory with friends', title:'Grateful for my people.', text:'The people who made the journey lighter, funnier, and sweeter.'},
-      {src:'/images/final-labcoat.b64', alt:'Victory in her lab coat', title:'Becoming the pharmacist.', text:'A dream, a white coat, and a chapter worth every late night.'},
+      {src:'/images/friends-full.jpg', alt:'Victory with friends', title:'Grateful for my people.', text:'The people who made the journey lighter, funnier, and sweeter.'},
+      {src:'/images/labcoat-full.jpg', alt:'Victory in her lab coat', title:'Becoming the pharmacist.', text:'A dream, a white coat, and a chapter worth every late night.'},
       {src:'/images/jersey.jpg', alt:'Victory in her jersey', title:'Walking into what’s next.', text:'A little joy, a lot of memories, and so much ahead.'},
-      {src:'/images/kiss.b64', alt:'Victory blowing a kiss', title:'Still becoming. Always me.', text:'Grateful for the journey. God has been faithful through it all.'}
+      {src:'/images/kiss-full.jpg', alt:'Victory blowing a kiss', title:'Still becoming. Always me.', text:'Grateful for the journey. God has been faithful through it all.'}
     ];
     const loaded = [];
     for (const p of photos) {
       try {
-        const r = await fetch(p.src + '?v=9', {cache:'no-store'});
+        const r = await fetch(p.src + '?v=10', {cache:'no-store'});
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        const data = p.src.endsWith('.b64') ? 'data:image/jpeg;base64,' + (await r.text()).trim().replace(/\s/g,'') : p.src + '?v=9';
-        loaded.push({...p,data});
+        loaded.push({...p, data: p.src + '?v=10'});
       } catch (e) { console.warn('Photo skipped:', p.src, e); }
     }
     if (!loaded.length) return;

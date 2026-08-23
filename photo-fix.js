@@ -1,11 +1,11 @@
-// Final image pass: use a real, valid JPEG for the hero and a clean four-photo slideshow.
+// Final image pass: reliable hero loading plus the clean four-photo slideshow.
 window.addEventListener('load', () => {
   const style = document.createElement('style');
   style.textContent = `
     .photo-slideshow{position:relative;margin-top:32px;background:var(--cream);padding:14px;box-shadow:var(--shadow);min-height:430px}
     .slide-stage{width:100%;aspect-ratio:4/5;overflow:hidden;background:#e8ddce}
     .slide-stage img{display:block;width:100%;height:100%;object-fit:cover;image-rendering:auto;filter:contrast(1.035) saturate(1.035);transform:translateZ(0);backface-visibility:hidden}
-    .hero-card .polaroid img{image-rendering:auto;filter:contrast(1.035) saturate(1.035);transform:translateZ(0);backface-visibility:hidden}
+    .hero-card .polaroid img{display:block;width:100%;height:auto;object-fit:cover;image-rendering:auto;filter:contrast(1.035) saturate(1.035);transform:translateZ(0);backface-visibility:hidden}
     .slide-nav{position:absolute;top:42%;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,250,242,.94);color:var(--ink);font-size:30px;line-height:1;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.12)}
     .slide-nav.prev{left:24px}.slide-nav.next{right:24px}
     .slide-dots{display:flex;justify-content:center;gap:7px;margin:14px 0 4px}
@@ -17,23 +17,17 @@ window.addEventListener('load', () => {
   `;
   document.head.appendChild(style);
 
-  // IMPORTANT: the old /api/hero endpoint concatenated four complete JPEG files,
-  // producing an invalid image. top-photo-01.b64p is itself a complete JPEG.
   const hero = document.querySelector('.hero-card .polaroid img');
   if (hero) {
-    (async () => {
-      try {
-        const response = await fetch('/images/top-photo-01.b64p?v=7', {cache:'no-store'});
-        if (!response.ok) throw new Error('Hero image HTTP ' + response.status);
-        const base64 = (await response.text()).trim().replace(/\s/g, '');
-        hero.src = 'data:image/jpeg;base64,' + base64;
-      } catch (error) {
-        console.warn('Hero image failed:', error);
-        // Known-good fallback already present in the project.
-        hero.src = '/images/paragon-pink.svg?v=7';
-      }
-      hero.removeAttribute('srcset');
-    })();
+    // The existing /api/hero endpoint assembles the stored base64 chunks into
+    // one complete JPEG. Request that endpoint instead of treating each chunk
+    // as a standalone image.
+    hero.src = '/api/hero?v=8';
+    hero.removeAttribute('srcset');
+    hero.onerror = () => {
+      console.warn('Hero endpoint failed to load.');
+      hero.onerror = null;
+    };
   }
 
   setTimeout(async () => {
@@ -41,7 +35,6 @@ window.addEventListener('load', () => {
     if (!grid) return;
     grid.classList.add('photo-slideshow');
 
-    // Conversation removed as requested. Exactly these four remain.
     const photos = [
       {src:'/images/slide-05.b64', alt:'Victory with friends', title:'Grateful for my people.', text:'The people who made the journey lighter, funnier, and sweeter.'},
       {src:'/images/final-labcoat.b64', alt:'Victory in her lab coat', title:'Becoming the pharmacist.', text:'A dream, a white coat, and a chapter worth every late night.'},
@@ -52,43 +45,30 @@ window.addEventListener('load', () => {
     const loaded = [];
     for (const p of photos) {
       try {
-        const r = await fetch(p.src + '?v=7', {cache:'no-store'});
+        const r = await fetch(p.src + '?v=8', {cache:'no-store'});
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        const data = p.src.endsWith('.b64')
-          ? 'data:image/jpeg;base64,' + (await r.text()).trim().replace(/\s/g,'')
-          : p.src + '?v=7';
+        const data = p.src.endsWith('.b64') ? 'data:image/jpeg;base64,' + (await r.text()).trim().replace(/\s/g,'') : p.src + '?v=8';
         loaded.push({...p,data});
-      } catch (e) {
-        console.warn('Photo skipped:', p.src, e);
-      }
+      } catch (e) { console.warn('Photo skipped:', p.src, e); }
     }
     if (!loaded.length) return;
 
     grid.innerHTML = '<div class="slide-stage"></div><button class="slide-nav prev" type="button" aria-label="Previous photo">‹</button><button class="slide-nav next" type="button" aria-label="Next photo">›</button><div class="slide-dots"></div><div class="slide-caption"></div>';
-    const stage = grid.querySelector('.slide-stage');
-    const dots = grid.querySelector('.slide-dots');
-    const cap = grid.querySelector('.slide-caption');
+    const stage = grid.querySelector('.slide-stage'), dots = grid.querySelector('.slide-dots'), cap = grid.querySelector('.slide-caption');
     let i = 0, timer;
-
     function show(n) {
       i = (n + loaded.length) % loaded.length;
       const p = loaded[i];
       stage.innerHTML = '';
-      const img = document.createElement('img');
-      img.src = p.data;
-      img.alt = p.alt;
-      img.loading = 'eager';
-      stage.appendChild(img);
+      const img = document.createElement('img'); img.src = p.data; img.alt = p.alt; img.loading = 'eager'; stage.appendChild(img);
       cap.innerHTML = '<strong>' + p.title + '</strong><span>' + p.text + '</span>';
       dots.querySelectorAll('button').forEach((b,j) => b.classList.toggle('active', j === i));
     }
-
     dots.innerHTML = loaded.map((_,j) => '<button type="button" aria-label="Go to photo ' + (j+1) + '"></button>').join('');
     dots.querySelectorAll('button').forEach((b,j) => b.onclick = () => {show(j);restart();});
     grid.querySelector('.prev').onclick = () => {show(i-1);restart();};
     grid.querySelector('.next').onclick = () => {show(i+1);restart();};
     function restart(){clearInterval(timer);timer=setInterval(() => show(i+1),5000);}
-    show(0);
-    restart();
+    show(0); restart();
   }, 300);
 });

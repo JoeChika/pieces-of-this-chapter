@@ -1,10 +1,10 @@
 (()=>{
-const VERSION='20260823-jersey-binary-fix';
+const VERSION='20260823-photo-render-final';
 const photos=[
  {src:'/images/paragon-pink.b64',alt:"Victory at Paragon '24",title:"Paragon '24.",text:'The chapter we prayed, studied and worked our way through.'},
  {src:'/images/portrait-current.b64',alt:'Victory, still becoming',title:'And here I am.',text:'Still becoming. Still grateful. Still carrying every piece.'},
  {src:'/images/paragon-coat.jpg',alt:'Victory in her lab coat',title:'Becoming the pharmacist.',text:'A dream, a white coat, and a chapter worth every late night.'},
- {src:'/images/slide-01.b64',alt:'Victory in her jersey',title:'Finding my rhythm.',text:'Learning, growing, laughing, and making memories along the way.'},
+ {src:'/images/jersey.jpg',alt:'Victory in her jersey',title:'Finding my rhythm.',text:'Learning, growing, laughing, and making memories along the way.'},
  {src:'/images/slide-02.b64',alt:'Victory in her Paragon outfit',title:'Standing in my own story.',text:'Different seasons, different versions of me — all part of the becoming.'},
  {src:'/images/slide-03.b64',alt:'Victory in her full Paragon outfit',title:'A little joy along the way.',text:'Because the journey deserved moments of celebration too.'},
  {src:'/images/slide-05.b64',alt:'Victory with four friends in the graduation collage',title:'The people who made it sweeter.',text:'Some memories are better when they are shared.'},
@@ -13,14 +13,17 @@ const photos=[
 async function load(src){
  const r=await fetch(src+'?v='+VERSION,{cache:'no-store'});
  if(!r.ok)throw Error(src+' '+r.status);
- const blob=await r.blob();
- if(!blob.size)throw Error(src+' empty');
+ const bytes=await r.arrayBuffer();
+ if(!bytes.byteLength)throw Error(src+' empty');
+ const blob=new Blob([bytes],{type:'image/jpeg'});
  return URL.createObjectURL(blob);
 }
 async function run(){
+ const hero=document.querySelector('.hero-card .polaroid img');
+ if(hero){try{hero.src=await load('/images/paragon-pink.b64')}catch(e){console.warn('hero skipped',e)}}
  const grid=document.querySelector('.photo-grid');if(!grid)return;
  const loaded=[];
- for(const p of photos){try{loaded.push({...p,data:await load(p.src)})}catch(e){console.warn('photo skipped',p.src,e)}}
+ for(const p of photos){try{const data=await load(p.src);await new Promise((resolve,reject)=>{const test=new Image();test.onload=resolve;test.onerror=reject;test.src=data});loaded.push({...p,data})}catch(e){console.warn('photo skipped',p.src,e)}}
  if(!loaded.length)return;
  grid.className='photo-slideshow';
  grid.innerHTML='<div class="slide-stage" aria-live="polite"></div><button class="slide-nav prev" type="button" aria-label="Previous photo">‹</button><button class="slide-nav next" type="button" aria-label="Next photo">›</button><div class="slide-dots" role="tablist"></div><div class="slide-caption"></div>';

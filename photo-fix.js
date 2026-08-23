@@ -1,19 +1,21 @@
 // Final photo override: force the real hero endpoint and build the slideshow
 // from the existing uploaded image assets. No embedded image data is used.
 window.addEventListener('load', () => {
+  const style = document.createElement('style');
+  style.textContent = `.photo-slideshow{position:relative;margin-top:32px;background:var(--cream);padding:14px;box-shadow:var(--shadow);min-height:430px}.slide-stage{width:100%;aspect-ratio:4/5;overflow:hidden;background:#e8ddce}.slide-stage img{display:block;width:100%;height:100%;object-fit:cover}.slide-nav{position:absolute;top:42%;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,250,242,.92);color:var(--ink);font-size:30px;line-height:1;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.12)}.slide-nav.prev{left:24px}.slide-nav.next{right:24px}.slide-dots{display:flex;justify-content:center;gap:7px;margin:14px 0 4px}.slide-dots button{width:7px;height:7px;border:0;border-radius:50%;padding:0;background:var(--line);cursor:pointer}.slide-dots button.active{background:var(--accent)}.slide-caption{padding:10px 5px 3px;text-align:center}.slide-caption strong{display:block;font-family:'Playfair Display',serif;font-size:22px}.slide-caption span{display:block;color:var(--muted);font-size:11px;margin-top:3px}`;
+  document.head.appendChild(style);
+
   const hero = document.querySelector('.hero-card .polaroid img');
   if (hero) {
-    const heroUrl = '/api/hero?v=5';
+    const heroUrl = '/api/hero?v=6';
     hero.src = heroUrl;
     hero.removeAttribute('srcset');
     hero.addEventListener('error', () => {
-      // Keep the card visible even if a stale deployment cache briefly serves an old API response.
-      hero.src = '/images/paragon-pink.svg?v=5';
+      hero.src = '/images/paragon-pink.svg?v=6';
     }, { once: true });
   }
 
   setTimeout(async () => {
-    // The current HTML uses .photo-grid; older revisions used .photo-slideshow.
     const grid = document.querySelector('.photo-slideshow') || document.querySelector('.photo-grid');
     if (!grid) return;
     grid.classList.add('photo-slideshow');
@@ -29,25 +31,23 @@ window.addEventListener('load', () => {
     const loaded = [];
     for (const p of photos) {
       try {
-        const r = await fetch(p.src + '?v=5', { cache:'no-store' });
+        const r = await fetch(p.src + '?v=6', {cache:'no-store'});
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const data = p.src.endsWith('.b64')
           ? 'data:image/jpeg;base64,' + (await r.text()).trim().replace(/\s/g,'')
-          : p.src + '?v=5';
-        loaded.push({...p, data});
+          : p.src + '?v=6';
+        loaded.push({...p,data});
       } catch (e) {
         console.warn('Photo skipped:', p.src, e);
       }
     }
-
     if (!loaded.length) return;
 
     grid.innerHTML = '<div class="slide-stage"></div><button class="slide-nav prev" type="button" aria-label="Previous photo">‹</button><button class="slide-nav next" type="button" aria-label="Next photo">›</button><div class="slide-dots"></div><div class="slide-caption"></div>';
     const stage = grid.querySelector('.slide-stage');
     const dots = grid.querySelector('.slide-dots');
     const cap = grid.querySelector('.slide-caption');
-    let i = 0;
-    let timer;
+    let i = 0, timer;
 
     function show(n) {
       i = (n + loaded.length) % loaded.length;
@@ -63,15 +63,10 @@ window.addEventListener('load', () => {
     }
 
     dots.innerHTML = loaded.map((_,j) => '<button type="button" aria-label="Go to photo ' + (j+1) + '"></button>').join('');
-    dots.querySelectorAll('button').forEach((b,j) => b.onclick = () => { show(j); restart(); });
-    grid.querySelector('.prev').onclick = () => { show(i-1); restart(); };
-    grid.querySelector('.next').onclick = () => { show(i+1); restart(); };
-
-    function restart() {
-      clearInterval(timer);
-      timer = setInterval(() => show(i+1), 5000);
-    }
-
+    dots.querySelectorAll('button').forEach((b,j) => b.onclick = () => {show(j);restart();});
+    grid.querySelector('.prev').onclick = () => {show(i-1);restart();};
+    grid.querySelector('.next').onclick = () => {show(i+1);restart();};
+    function restart(){clearInterval(timer);timer=setInterval(() => show(i+1),5000);}
     show(0);
     restart();
   }, 300);

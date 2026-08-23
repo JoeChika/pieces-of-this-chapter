@@ -1,18 +1,39 @@
-// Final photo override: force the real hero endpoint and build the slideshow
-// from the existing uploaded image assets. No embedded image data is used.
+// Final image pass: use a real, valid JPEG for the hero and a clean four-photo slideshow.
 window.addEventListener('load', () => {
   const style = document.createElement('style');
-  style.textContent = `.photo-slideshow{position:relative;margin-top:32px;background:var(--cream);padding:14px;box-shadow:var(--shadow);min-height:430px}.slide-stage{width:100%;aspect-ratio:4/5;overflow:hidden;background:#e8ddce}.slide-stage img{display:block;width:100%;height:100%;object-fit:cover}.slide-nav{position:absolute;top:42%;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,250,242,.92);color:var(--ink);font-size:30px;line-height:1;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.12)}.slide-nav.prev{left:24px}.slide-nav.next{right:24px}.slide-dots{display:flex;justify-content:center;gap:7px;margin:14px 0 4px}.slide-dots button{width:7px;height:7px;border:0;border-radius:50%;padding:0;background:var(--line);cursor:pointer}.slide-dots button.active{background:var(--accent)}.slide-caption{padding:10px 5px 3px;text-align:center}.slide-caption strong{display:block;font-family:'Playfair Display',serif;font-size:22px}.slide-caption span{display:block;color:var(--muted);font-size:11px;margin-top:3px}`;
+  style.textContent = `
+    .photo-slideshow{position:relative;margin-top:32px;background:var(--cream);padding:14px;box-shadow:var(--shadow);min-height:430px}
+    .slide-stage{width:100%;aspect-ratio:4/5;overflow:hidden;background:#e8ddce}
+    .slide-stage img{display:block;width:100%;height:100%;object-fit:cover;image-rendering:auto;filter:contrast(1.035) saturate(1.035);transform:translateZ(0);backface-visibility:hidden}
+    .hero-card .polaroid img{image-rendering:auto;filter:contrast(1.035) saturate(1.035);transform:translateZ(0);backface-visibility:hidden}
+    .slide-nav{position:absolute;top:42%;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,250,242,.94);color:var(--ink);font-size:30px;line-height:1;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.12)}
+    .slide-nav.prev{left:24px}.slide-nav.next{right:24px}
+    .slide-dots{display:flex;justify-content:center;gap:7px;margin:14px 0 4px}
+    .slide-dots button{width:7px;height:7px;border:0;border-radius:50%;padding:0;background:var(--line);cursor:pointer}
+    .slide-dots button.active{background:var(--accent)}
+    .slide-caption{padding:10px 5px 3px;text-align:center}
+    .slide-caption strong{display:block;font-family:'Playfair Display',serif;font-size:22px}
+    .slide-caption span{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+  `;
   document.head.appendChild(style);
 
+  // IMPORTANT: the old /api/hero endpoint concatenated four complete JPEG files,
+  // producing an invalid image. top-photo-01.b64p is itself a complete JPEG.
   const hero = document.querySelector('.hero-card .polaroid img');
   if (hero) {
-    const heroUrl = '/api/hero?v=6';
-    hero.src = heroUrl;
-    hero.removeAttribute('srcset');
-    hero.addEventListener('error', () => {
-      hero.src = '/images/paragon-pink.svg?v=6';
-    }, { once: true });
+    (async () => {
+      try {
+        const response = await fetch('/images/top-photo-01.b64p?v=7', {cache:'no-store'});
+        if (!response.ok) throw new Error('Hero image HTTP ' + response.status);
+        const base64 = (await response.text()).trim().replace(/\s/g, '');
+        hero.src = 'data:image/jpeg;base64,' + base64;
+      } catch (error) {
+        console.warn('Hero image failed:', error);
+        // Known-good fallback already present in the project.
+        hero.src = '/images/paragon-pink.svg?v=7';
+      }
+      hero.removeAttribute('srcset');
+    })();
   }
 
   setTimeout(async () => {
@@ -20,8 +41,8 @@ window.addEventListener('load', () => {
     if (!grid) return;
     grid.classList.add('photo-slideshow');
 
+    // Conversation removed as requested. Exactly these four remain.
     const photos = [
-      {src:'/images/final-conversation.b64', alt:'A memory from the journey', title:'Growth in conversation.', text:'Some of the sweetest memories were made in ordinary moments.'},
       {src:'/images/slide-05.b64', alt:'Victory with friends', title:'Grateful for my people.', text:'The people who made the journey lighter, funnier, and sweeter.'},
       {src:'/images/final-labcoat.b64', alt:'Victory in her lab coat', title:'Becoming the pharmacist.', text:'A dream, a white coat, and a chapter worth every late night.'},
       {src:'/images/jersey.jpg', alt:'Victory in her jersey', title:'Walking into what’s next.', text:'A little joy, a lot of memories, and so much ahead.'},
@@ -31,11 +52,11 @@ window.addEventListener('load', () => {
     const loaded = [];
     for (const p of photos) {
       try {
-        const r = await fetch(p.src + '?v=6', {cache:'no-store'});
+        const r = await fetch(p.src + '?v=7', {cache:'no-store'});
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const data = p.src.endsWith('.b64')
           ? 'data:image/jpeg;base64,' + (await r.text()).trim().replace(/\s/g,'')
-          : p.src + '?v=6';
+          : p.src + '?v=7';
         loaded.push({...p,data});
       } catch (e) {
         console.warn('Photo skipped:', p.src, e);

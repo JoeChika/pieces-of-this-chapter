@@ -8,9 +8,7 @@ module.exports = function handler(req, res) {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('Content-Length', String(image.length));
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
     res.end(image);
   } catch (error) {
     console.error('Hero image error:', error);

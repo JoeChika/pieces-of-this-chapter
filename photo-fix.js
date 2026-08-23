@@ -1,5 +1,5 @@
 (()=>{
-const VERSION='20260823-jersey-final';
+const VERSION='20260823-jersey-binary-fix';
 const photos=[
  {src:'/images/paragon-pink.b64',alt:"Victory at Paragon '24",title:"Paragon '24.",text:'The chapter we prayed, studied and worked our way through.'},
  {src:'/images/portrait-current.b64',alt:'Victory, still becoming',title:'And here I am.',text:'Still becoming. Still grateful. Still carrying every piece.'},
@@ -12,14 +12,9 @@ const photos=[
 ];
 async function load(src){
  const r=await fetch(src+'?v='+VERSION,{cache:'no-store'});
- if(!r.ok)throw Error(src);
- if(src.endsWith('.b64')){
-   const text=(await r.text()).trim().replace(/\s/g,'');
-   if(!text)throw Error(src);
-   atob(text);
-   return 'data:image/jpeg;base64,'+text;
- }
+ if(!r.ok)throw Error(src+' '+r.status);
  const blob=await r.blob();
+ if(!blob.size)throw Error(src+' empty');
  return URL.createObjectURL(blob);
 }
 async function run(){

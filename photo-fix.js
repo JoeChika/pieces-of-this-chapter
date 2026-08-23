@@ -2,7 +2,7 @@
 window.addEventListener('load', () => {
   const style = document.createElement('style');
   style.textContent = `
-    .photo-slideshow{position:relative;margin-top:32px;background:var(--cream);padding:14px;box-shadow:var(--shadow);min-height:430px}
+    .photo-slideshow{display:block !important;position:relative;margin:32px auto 0;max-width:420px;background:var(--cream);padding:14px;box-shadow:var(--shadow);min-height:430px}
     .slide-stage{width:100%;aspect-ratio:4/5;overflow:hidden;background:#e8ddce}
     .slide-stage img{display:block;width:100%;height:100%;object-fit:cover;image-rendering:auto;filter:contrast(1.035) saturate(1.035);transform:translateZ(0);backface-visibility:hidden}
     .hero-card .polaroid img{display:block;width:100%;height:auto;object-fit:cover;image-rendering:auto;filter:contrast(1.035) saturate(1.035);transform:translateZ(0);backface-visibility:hidden}

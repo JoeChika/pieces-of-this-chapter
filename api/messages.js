@@ -20,18 +20,31 @@ module.exports = async function handler(req, res) {
     const sql = db();
     const adminSecret = req.headers['x-admin-secret'];
 
-    if (req.method === 'GET') {
-      if (adminSecret && (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET)) {
+       if (req.method === 'GET') {
+      const isAdmin = !!(adminSecret && process.env.ADMIN_SECRET && adminSecret === process.env.ADMIN_SECRET);
+      if (adminSecret && !isAdmin) {
         return send(res, { error: 'Unauthorized' }, 401);
       }
-      const rows = await sql`
-        SELECT id, name, relation, message, mood,
-               TO_CHAR(created_at AT TIME ZONE 'UTC', 'DD Mon YYYY') AS date
-        FROM guestbook_messages
-        WHERE approved = TRUE
-        ORDER BY created_at DESC
-        LIMIT 200
-      `;
+      // Public visitors only ever receive names — the actual message text,
+      // relation and mood stay in the database and are never sent to the
+      // browser unless a valid admin secret is presented.
+      const rows = isAdmin
+        ? await sql`
+            SELECT id, name, relation, message, mood,
+                   TO_CHAR(created_at AT TIME ZONE 'UTC', 'DD Mon YYYY') AS date
+            FROM guestbook_messages
+            WHERE approved = TRUE
+            ORDER BY created_at DESC
+            LIMIT 200
+          `
+        : await sql`
+            SELECT id, name,
+                   TO_CHAR(created_at AT TIME ZONE 'UTC', 'DD Mon YYYY') AS date
+            FROM guestbook_messages
+            WHERE approved = TRUE
+            ORDER BY created_at DESC
+            LIMIT 200
+          `;
       return send(res, rows);
     }
 

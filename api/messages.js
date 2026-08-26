@@ -56,9 +56,20 @@ module.exports = async function handler(req, res) {
         return send(res, { error: 'One or more fields are too long.' }, 400);
       }
 
+      const trimmedMessage = String(message).trim();
+      const recentDuplicate = await sql`
+        SELECT id FROM guestbook_messages
+        WHERE message = ${trimmedMessage}
+          AND created_at > NOW() - INTERVAL '60 seconds'
+        LIMIT 1
+      `;
+      if (recentDuplicate.length) {
+        return send(res, { error: 'This piece was just added — give it a moment before trying again.' }, 429);
+      }
+
       const rows = await sql`
         INSERT INTO guestbook_messages (name, relation, message, mood)
-        VALUES (${String(name).trim()}, ${String(relation).trim()}, ${String(message).trim()}, ${String(mood).trim()})
+        VALUES (${String(name).trim()}, ${String(relation).trim()}, ${trimmedMessage}, ${String(mood).trim()})
         RETURNING id, name, relation, message, mood,
                   TO_CHAR(created_at AT TIME ZONE 'UTC', 'DD Mon YYYY') AS date
       `;
